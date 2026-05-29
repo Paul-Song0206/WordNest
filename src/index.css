@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  --app-bg: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 48%, #eef4ff 100%);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family:
+    "Microsoft YaHei",
+    "PingFang SC",
+    "Noto Sans SC",
+    sans-serif;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+button,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+summary,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.preview-surface,
+textarea {
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.preview-surface table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.preview-surface th,
+.preview-surface td {
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 0.625rem;
+}
+
+.preview-surface pre {
+  overflow-x: auto;
+  white-space: pre-wrap;
+}

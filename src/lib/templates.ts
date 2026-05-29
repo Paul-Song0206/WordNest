@@ -1,0 +1,536 @@
+import type { DocumentTemplate } from "../types/document";
+import {
+  generalSampleInput,
+  officialDocumentSampleInput,
+  thesisSampleInput,
+} from "../samples/sampleInput";
+
+const officialBodyFont =
+  "'FangSong_GB2312', '仿宋_GB2312', FangSong, 仿宋, SimFang, STFangsong, 'Times New Roman', 'Nimbus Roman No9 L', serif";
+const officialKaiFont =
+  "'KaiTi_GB2312', '楷体_GB2312', KaiTi, 楷体, STKaiti, 'Times New Roman', 'Nimbus Roman No9 L', serif";
+const officialHeiFont = "SimHei, 黑体, 'Microsoft YaHei', sans-serif";
+const officialTitleFont =
+  "'FZXiaoBiaoSong-B05S', '方正小标宋简体', SimSun, 宋体, 'Times New Roman', 'Nimbus Roman No9 L', serif";
+const rucThesisBodyFont = "SimSun, 宋体, 'Times New Roman', 'Nimbus Roman No9 L', serif";
+const rucThesisHeadingFont = "SimHei, 黑体, 'Times New Roman', 'Nimbus Roman No9 L', sans-serif";
+const rucThesisLatinFont = "'Times New Roman', 'Nimbus Roman No9 L', serif";
+const generalPaperBodyFont = "SimSun, 宋体, 'Times New Roman', 'Nimbus Roman No9 L', serif";
+const generalPaperHeadingFont = "SimHei, 黑体, 'Times New Roman', 'Nimbus Roman No9 L', sans-serif";
+const generalPaperLatinFont = "'Times New Roman', 'Nimbus Roman No9 L', serif";
+
+export const builtInTemplates: DocumentTemplate[] = [
+  {
+    id: "general-clean",
+    name: "基础排版清理",
+    description: "清理 AI 文本、Markdown 和普通段落，不强制套用特定文种规范。",
+    sampleInput: generalSampleInput,
+    styles: {
+      document: {
+        color: "#111827",
+        fontFamily: "Microsoft YaHei, PingFang SC, SimSun, sans-serif",
+        previewBackground: "#ffffff",
+        previewPadding: "1rem",
+      },
+      headings: {
+        1: {
+          margin: "0 0 14pt",
+          lineHeight: "1.55",
+          fontSize: "18pt",
+          fontFamily: "Microsoft YaHei, PingFang SC, sans-serif",
+          fontWeight: "700",
+        },
+        2: {
+          margin: "12pt 0 8pt",
+          lineHeight: "1.55",
+          fontSize: "15pt",
+          fontFamily: "Microsoft YaHei, PingFang SC, sans-serif",
+          fontWeight: "700",
+        },
+        3: {
+          margin: "9pt 0 6pt",
+          lineHeight: "1.55",
+          fontSize: "13pt",
+          fontFamily: "Microsoft YaHei, PingFang SC, sans-serif",
+          fontWeight: "600",
+        },
+        4: {
+          margin: "6pt 0 4pt",
+          lineHeight: "1.55",
+          fontSize: "12pt",
+          fontFamily: "Microsoft YaHei, PingFang SC, sans-serif",
+          fontWeight: "600",
+        },
+      },
+      paragraph: {
+        margin: "0 0 10pt",
+        lineHeight: "1.75",
+        textIndent: "2em",
+        fontSize: "11.5pt",
+        fontFamily: "Microsoft YaHei, PingFang SC, SimSun, sans-serif",
+      },
+      list: {
+        margin: "0 0 10pt",
+        paddingLeft: "1.5em",
+        lineHeight: "1.75",
+        fontSize: "11.5pt",
+        fontFamily: "Microsoft YaHei, PingFang SC, SimSun, sans-serif",
+        itemMargin: "0 0 4pt",
+        numericHandling: "native",
+      },
+      blockquote: {
+        margin: "0 0 10pt",
+        padding: "7pt 10pt",
+        borderLeft: "3pt solid #cbd5e1",
+        lineHeight: "1.7",
+        fontSize: "11pt",
+        fontFamily: "Microsoft YaHei, PingFang SC, SimSun, sans-serif",
+        previewBackground: "#f8fafc",
+      },
+      code: {
+        margin: "0 0 10pt",
+        padding: "10pt",
+        fontFamily: "Consolas, Monaco, monospace",
+        fontSize: "10pt",
+        lineHeight: "1.6",
+        previewBackground: "#f8fafc",
+      },
+      table: {
+        margin: "0 0 10pt",
+        border: "1px solid #cbd5e1",
+        cellPadding: "6pt 8pt",
+        fontSize: "10.5pt",
+        fontFamily: "Microsoft YaHei, PingFang SC, SimSun, sans-serif",
+        layout: "full",
+      },
+    },
+  },
+  {
+    id: "official-document",
+    name: "公文写作",
+    description: "适合通知、汇报、会议纪要等正式中文公文。",
+    notes: ["字体会按系统与 Word 已安装字体回退显示；本工具不内置或分发字体文件。"],
+    sampleInput: officialDocumentSampleInput,
+    styles: {
+      document: {
+        color: "#111827",
+        fontFamily: officialBodyFont,
+        previewBackground: "#ffffff",
+        previewPadding: "1rem",
+      },
+      headings: {
+        1: {
+          margin: "0 0 18pt",
+          lineHeight: "1.6",
+          fontSize: "22pt",
+          fontFamily: officialTitleFont,
+          fontWeight: "700",
+          textAlign: "center",
+        },
+        2: {
+          margin: "14pt 0 8pt",
+          lineHeight: "1.65",
+          fontSize: "16pt",
+          fontFamily: officialHeiFont,
+          fontWeight: "700",
+        },
+        3: {
+          margin: "10pt 0 6pt",
+          lineHeight: "1.65",
+          fontSize: "16pt",
+          fontFamily: officialKaiFont,
+          fontWeight: "700",
+        },
+        4: {
+          margin: "8pt 0 4pt",
+          lineHeight: "1.65",
+          fontSize: "16pt",
+          fontFamily: officialBodyFont,
+          fontWeight: "700",
+        },
+      },
+      paragraph: {
+        margin: "0 0 10pt",
+        lineHeight: "1.85",
+        textIndent: "2em",
+        fontSize: "16pt",
+        fontFamily: officialBodyFont,
+      },
+      list: {
+        margin: "0 0 10pt",
+        paddingLeft: "1.75em",
+        lineHeight: "1.85",
+        fontSize: "16pt",
+        fontFamily: officialBodyFont,
+        itemMargin: "0 0 4pt",
+        numericHandling: "plain",
+      },
+      blockquote: {
+        margin: "0 0 10pt",
+        padding: "6pt 10pt",
+        borderLeft: "2pt solid #9ca3af",
+        lineHeight: "1.75",
+        fontSize: "15pt",
+        fontFamily: officialKaiFont,
+        previewBackground: "#f9fafb",
+      },
+      code: {
+        margin: "0 0 10pt",
+        padding: "8pt 10pt",
+        fontFamily: "Consolas, Monaco, monospace",
+        fontSize: "10.5pt",
+        lineHeight: "1.6",
+        previewBackground: "#f9fafb",
+      },
+      table: {
+        margin: "0 0 12pt",
+        border: "1px solid #6b7280",
+        cellPadding: "6pt 8pt",
+        fontSize: "14pt",
+        fontFamily: officialBodyFont,
+        layout: "full",
+      },
+    },
+  },
+  {
+    id: "report-format",
+    name: "学术报告",
+    description: "适合一般研究报告、项目说明和课程作业。",
+    sampleInput: generalSampleInput,
+    styles: {
+      document: {
+        color: "#111827",
+        fontFamily: "SimSun, Songti SC, serif",
+        previewBackground: "#fffdfa",
+        previewPadding: "1rem",
+      },
+      headings: {
+        1: {
+          margin: "0 0 16pt",
+          lineHeight: "1.5",
+          fontSize: "20pt",
+          fontFamily: "SimHei, Microsoft YaHei, sans-serif",
+          fontWeight: "700",
+        },
+        2: {
+          margin: "14pt 0 10pt",
+          lineHeight: "1.5",
+          fontSize: "16pt",
+          fontFamily: "SimHei, Microsoft YaHei, sans-serif",
+          fontWeight: "700",
+        },
+        3: {
+          margin: "10pt 0 8pt",
+          lineHeight: "1.5",
+          fontSize: "14pt",
+          fontFamily: "KaiTi, STKaiti, serif",
+          fontWeight: "700",
+        },
+        4: {
+          margin: "8pt 0 6pt",
+          lineHeight: "1.5",
+          fontSize: "12pt",
+          fontFamily: "KaiTi, STKaiti, serif",
+          fontWeight: "700",
+        },
+      },
+      paragraph: {
+        margin: "0 0 12pt",
+        lineHeight: "1.8",
+        textIndent: "2em",
+        fontSize: "12pt",
+        fontFamily: "SimSun, Songti SC, serif",
+      },
+      list: {
+        margin: "0 0 12pt",
+        paddingLeft: "1.75em",
+        lineHeight: "1.8",
+        fontSize: "12pt",
+        fontFamily: "SimSun, Songti SC, serif",
+        itemMargin: "0 0 6pt",
+        numericHandling: "native",
+      },
+      blockquote: {
+        margin: "0 0 12pt",
+        padding: "8pt 12pt",
+        borderLeft: "3pt solid #94a3b8",
+        lineHeight: "1.8",
+        fontSize: "12pt",
+        fontFamily: "KaiTi, STKaiti, serif",
+        previewBackground: "#f8fafc",
+      },
+      code: {
+        margin: "0 0 12pt",
+        padding: "12pt",
+        fontFamily: "Consolas, Monaco, monospace",
+        fontSize: "10.5pt",
+        lineHeight: "1.7",
+        previewBackground: "#f8fafc",
+      },
+      table: {
+        margin: "0 0 12pt",
+        border: "1px solid #94a3b8",
+        cellPadding: "6pt 8pt",
+        fontSize: "11pt",
+        fontFamily: "SimSun, Songti SC, serif",
+        layout: "full",
+      },
+    },
+  },
+  {
+    id: "ruc-undergraduate-thesis-2022",
+    name: "人大本科毕业论文（2022修订）",
+    description: "按人大本科毕业论文截图要求设置正文、标题和表格的 Word 友好样式。",
+    notes: [
+      "已按模板记录页边距：上/下 2 cm，左/右 1.5 cm，左侧装订线 0.5 cm；复制到 Word 后仍建议在页面设置中复核。",
+      "页眉校徽、页码、自动目录、图表题注、交叉引用和参考文献格式仍需在 Word 中最终调整。",
+    ],
+    pageSetup: {
+      marginTop: "2cm",
+      marginBottom: "2cm",
+      marginLeft: "1.5cm",
+      marginRight: "1.5cm",
+      gutter: "0.5cm",
+      gutterPosition: "left",
+    },
+    sampleInput: thesisSampleInput,
+    wordGuide: {
+      summary:
+        "该模板尽量贴近人大本科毕业论文 2022 修订版截图要求，重点控制正文、1-4 级标题、表格和中英文字体；Word 字段类功能仍需粘贴后处理。",
+      sections: [
+        {
+          title: "模板直接控制的样式",
+          items: [
+            "正文为宋体小四 12pt，英文与数字使用 Times New Roman，首行缩进 2 字符，两端对齐，段前段后为 0。",
+            "Markdown 的 h1-h4 分别映射到论文 1-4 级标题：黑体、加粗，字号约为三号/四号/小四/五号。",
+            "表格文字为宋体五号 10.5pt，英文与数字使用 Times New Roman，单元格不做首行缩进并保留可见边框。",
+          ],
+        },
+        {
+          title: "需要在 Word 中继续设置的版式",
+          items: [
+            "页面设置建议复核为：上 2 cm、下 2 cm、左 1.5 cm、右 1.5 cm、左侧装订线 0.5 cm。",
+            "页眉校徽、页脚页码、自动目录、图表题注、交叉引用和参考文献域属于 Word 功能，无法仅靠剪贴板 HTML 稳定完成。",
+            "本模板不自动生成章节编号，也不自动套用 GB/T 7714 参考文献格式；请保留或手动处理原文中的编号。",
+          ],
+        },
+      ],
+    },
+    styles: {
+      document: {
+        color: "#111827",
+        fontFamily: rucThesisBodyFont,
+        latinFontFamily: rucThesisLatinFont,
+        previewBackground: "#fffefc",
+        previewPadding: "1.25rem",
+      },
+      headings: {
+        1: {
+          margin: "12pt 0",
+          lineHeight: "1.0",
+          fontSize: "16pt",
+          fontFamily: rucThesisHeadingFont,
+          fontWeight: "700",
+          textAlign: "center",
+        },
+        2: {
+          margin: "12pt 0",
+          lineHeight: "1.0",
+          fontSize: "14pt",
+          fontFamily: rucThesisHeadingFont,
+          fontWeight: "700",
+        },
+        3: {
+          margin: "12pt 0",
+          lineHeight: "1.0",
+          fontSize: "12pt",
+          fontFamily: rucThesisHeadingFont,
+          fontWeight: "700",
+        },
+        4: {
+          margin: "12pt 0",
+          lineHeight: "1.0",
+          fontSize: "10.5pt",
+          fontFamily: rucThesisHeadingFont,
+          fontWeight: "700",
+        },
+      },
+      paragraph: {
+        margin: "0",
+        lineHeight: "1.25",
+        textIndent: "2em",
+        fontSize: "12pt",
+        fontFamily: rucThesisBodyFont,
+        textAlign: "justify",
+      },
+      list: {
+        margin: "0",
+        paddingLeft: "1.75em",
+        lineHeight: "1.25",
+        fontSize: "12pt",
+        fontFamily: rucThesisBodyFont,
+        itemMargin: "0",
+        numericHandling: "native",
+      },
+      blockquote: {
+        margin: "0 0 10pt",
+        padding: "6pt 10pt",
+        borderLeft: "2pt solid #94a3b8",
+        lineHeight: "1.25",
+        fontSize: "12pt",
+        fontFamily: rucThesisBodyFont,
+        previewBackground: "#fafaf9",
+      },
+      code: {
+        margin: "0 0 10pt",
+        padding: "8pt 10pt",
+        fontFamily: "Consolas, 'Times New Roman', monospace",
+        fontSize: "10.5pt",
+        lineHeight: "1.5",
+        previewBackground: "#fafaf9",
+      },
+      table: {
+        margin: "8pt 0 12pt",
+        border: "1px solid #4b5563",
+        cellPadding: "5pt 6pt",
+        fontSize: "10.5pt",
+        fontFamily: rucThesisBodyFont,
+        layout: "full",
+      },
+    },
+  },
+  {
+    id: "thesis",
+    name: "通用论文 / Academic Paper",
+    description:
+      "适合课程论文、学术论文和规范论文排版，默认采用论文结构与格式要求，可在高级设置中微调。",
+    notes: [
+      "页面方向按纵向处理；页边距记录为上/下 2 cm、左/右 1.5 cm、左侧装订线 0.5 cm，复制或导出后仍建议在 Word 页面设置中复核。",
+      "页眉校徽、页码、脚注系统、图表题注位置和附录专项样式属于 Word 字段或结构化排版能力，本模板仅提供粘贴后的格式指导，不在正文中伪造。",
+    ],
+    pageSetup: {
+      marginTop: "2cm",
+      marginBottom: "2cm",
+      marginLeft: "1.5cm",
+      marginRight: "1.5cm",
+      gutter: "0.5cm",
+      gutterPosition: "left",
+    },
+    sampleInput: thesisSampleInput,
+    wordGuide: {
+      summary:
+        "该模板按通用论文要求设置正文、1-4 级标题、页边距和中英文字体；摘要、关键词、参考文献等特殊结构会在现有解析能力内尽量保留，复杂 Word 字段需粘贴后处理。",
+      sections: [
+        {
+          title: "模板直接控制的样式",
+          items: [
+            "正文使用宋体 12pt，英文与数字使用 Times New Roman，1.25 倍行距，首行缩进 2em，两端对齐。",
+            "Markdown 的 h1-h4 分别对应 1、1.1、1.1.1、1.1.1.1 层级标题：黑体、加粗，字号约为三号/四号/小四/五号。",
+            "摘要、Abstract、参考文献等独立标题会按一级标题样式呈现；关键词行保留原文中的“关键词：”或“Key Words:”内容，不自动改写。",
+          ],
+        },
+        {
+          title: "需要在 Word 中继续设置的版式",
+          items: [
+            "页面方向为纵向；页边距建议复核为上 2 cm、下 2 cm、左 1.5 cm、右 1.5 cm、左侧装订线 0.5 cm。",
+            "摘要正文 1.5 倍行距、英文摘要正文 2 倍行距、关键词间三空格等要求依赖原文结构；当前不新增段落状态解析。",
+            "页眉校徽、居中页码“第1页”、脚注、自动目录、图表题注和交叉引用属于 Word 功能，无法仅靠剪贴板 HTML 稳定生成。",
+          ],
+        },
+        {
+          title: "最终检查",
+          items: [
+            "参考文献不会被自动生成或改写；请在原文中保留 [1]、[2]、[3] 等编号并在 Word 中最终核对。",
+            "附录标题、附图说明和图表题注如有学校特殊要求，粘贴后在 Word 中按实际结构微调。",
+            "在 Word 中检查页边距、页眉页脚、页码、目录和字段更新结果是否符合最终提交规范。",
+          ],
+        },
+      ],
+    },
+    styles: {
+      document: {
+        color: "#111827",
+        fontFamily: generalPaperBodyFont,
+        latinFontFamily: generalPaperLatinFont,
+        previewBackground: "#fffefc",
+        previewPadding: "1.25rem",
+      },
+      headings: {
+        1: {
+          margin: "12pt 0",
+          lineHeight: "1.0",
+          fontSize: "16pt",
+          fontFamily: generalPaperHeadingFont,
+          fontWeight: "700",
+          textAlign: "center",
+        },
+        2: {
+          margin: "12pt 0",
+          lineHeight: "1.0",
+          fontSize: "14pt",
+          fontFamily: generalPaperHeadingFont,
+          fontWeight: "700",
+          textAlign: "left",
+        },
+        3: {
+          margin: "12pt 0",
+          lineHeight: "1.0",
+          fontSize: "12pt",
+          fontFamily: generalPaperHeadingFont,
+          fontWeight: "700",
+          textAlign: "left",
+        },
+        4: {
+          margin: "12pt 0",
+          lineHeight: "1.0",
+          fontSize: "10.5pt",
+          fontFamily: generalPaperHeadingFont,
+          fontWeight: "700",
+          textAlign: "left",
+        },
+      },
+      paragraph: {
+        margin: "0",
+        lineHeight: "1.25",
+        textIndent: "2em",
+        fontSize: "12pt",
+        fontFamily: generalPaperBodyFont,
+        textAlign: "justify",
+      },
+      list: {
+        margin: "0",
+        paddingLeft: "1.75em",
+        lineHeight: "1.25",
+        fontSize: "12pt",
+        fontFamily: generalPaperBodyFont,
+        itemMargin: "0",
+        numericHandling: "native",
+      },
+      blockquote: {
+        margin: "0 0 10pt",
+        padding: "6pt 10pt",
+        borderLeft: "2pt solid #94a3b8",
+        lineHeight: "1.25",
+        fontSize: "12pt",
+        fontFamily: generalPaperBodyFont,
+        previewBackground: "#fafaf9",
+      },
+      code: {
+        margin: "0 0 10pt",
+        padding: "8pt 10pt",
+        fontFamily: "Consolas, 'Times New Roman', monospace",
+        fontSize: "10.5pt",
+        lineHeight: "1.5",
+        previewBackground: "#fafaf9",
+      },
+      table: {
+        margin: "0 0 12pt",
+        border: "1px solid #475569",
+        cellPadding: "5pt 6pt",
+        fontSize: "10.5pt",
+        fontFamily: generalPaperBodyFont,
+        layout: "three-line",
+      },
+    },
+  },
+];

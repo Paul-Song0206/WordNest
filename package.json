@@ -1,0 +1,26 @@
+{
+  "name": "ai-text-layout-cleaner",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "markdown-it": "^14.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.4.1",
+    "@tailwindcss/vite": "^4.1.7",
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.5",
+    "@types/markdown-it": "^14.1.2",
+    "tailwindcss": "^4.1.7",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.0"
+  }
+}
