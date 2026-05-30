@@ -45,6 +45,7 @@ export default function App() {
   const [templateId, setTemplateId] = useState(loadStoredTemplateId);
   const [styleOverridesByTemplate, setStyleOverridesByTemplate] = useState(loadStoredOverrides);
   const [status, setStatus] = useState<string>("");
+  const [isStyleSettingsOpen, setIsStyleSettingsOpen] = useState(false);
 
   const selectedTemplate = useMemo(
     () => builtInTemplates.find((template) => template.id === templateId) ?? builtInTemplates[0],
@@ -70,6 +71,21 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem(overridesStorageKey, JSON.stringify(styleOverridesByTemplate));
   }, [styleOverridesByTemplate]);
+
+  useEffect(() => {
+    if (!isStyleSettingsOpen) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsStyleSettingsOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isStyleSettingsOpen]);
 
   const processed = useMemo(() => {
     const cleanedText = cleanText(rawInput);
@@ -181,19 +197,51 @@ export default function App() {
             <span className="rounded-md bg-slate-50 px-2 py-1">仅整理格式，不改写内容</span>
           </div>
 
-          <details className="group mt-2.5 border-t border-slate-100 pt-2.5">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-slate-700 transition hover:text-indigo-700">
-              <span>高级样式设置</span>
-              <span className="text-xs text-slate-400 group-open:hidden">展开</span>
-              <span className="hidden text-xs text-slate-400 group-open:inline">收起</span>
-            </summary>
-            <StyleSettingsPanel
-              overrides={selectedOverrides}
-              onChange={handleStyleOverridesChange}
-              onReset={handleResetStyleOverrides}
-            />
-          </details>
+          <div className="mt-2.5 flex justify-end border-t border-slate-100 pt-2.5">
+            <button
+              type="button"
+              onClick={() => setIsStyleSettingsOpen(true)}
+              className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-50"
+            >
+              高级样式设置
+            </button>
+          </div>
         </section>
+
+        {isStyleSettingsOpen ? (
+          <div className="fixed inset-0 z-50">
+            <button
+              type="button"
+              aria-label="关闭高级样式设置"
+              className="absolute inset-0 bg-slate-900/15"
+              onClick={() => setIsStyleSettingsOpen(false)}
+            />
+            <aside
+              aria-label="高级样式设置"
+              role="dialog"
+              aria-modal="true"
+              className="absolute inset-y-0 left-0 flex w-full flex-col border-r border-slate-200 bg-white shadow-2xl sm:max-w-xl xl:max-w-2xl"
+            >
+              <div className="flex min-h-14 items-center justify-between gap-3 border-b border-slate-200 px-4">
+                <h2 className="text-base font-semibold text-slate-950">高级样式设置</h2>
+                <button
+                  type="button"
+                  onClick={() => setIsStyleSettingsOpen(false)}
+                  className="h-8 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition hover:border-indigo-300 hover:text-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-50"
+                >
+                  关闭
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+                <StyleSettingsPanel
+                  overrides={selectedOverrides}
+                  onChange={handleStyleOverridesChange}
+                  onReset={handleResetStyleOverrides}
+                />
+              </div>
+            </aside>
+          </div>
+        ) : null}
 
         <section className="grid flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <EditorPanel value={rawInput} characterCount={characterCount} onChange={setRawInput} />

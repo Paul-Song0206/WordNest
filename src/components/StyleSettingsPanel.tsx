@@ -122,7 +122,7 @@ export default function StyleSettingsPanel({
   };
 
   return (
-    <section className="mt-2.5 rounded-md border border-slate-200 bg-slate-50/70 p-3">
+    <section className="rounded-md border border-slate-200 bg-slate-50/70 p-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-slate-900">样式覆盖</h2>
@@ -139,7 +139,7 @@ export default function StyleSettingsPanel({
         </button>
       </div>
 
-      <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
         <SelectField
           label="中文字体"
           value={overrides.chineseFont ?? ""}
@@ -211,8 +211,8 @@ export default function StyleSettingsPanel({
 
             return (
               <div key={role} className="rounded-md border border-slate-200 bg-white p-2">
-                <div className="grid gap-2 md:grid-cols-[5rem_7rem_repeat(5,minmax(0,1fr))] md:items-end">
-                  <div className="pb-1 text-xs font-semibold text-slate-700">{label}</div>
+                <div className="grid gap-2 sm:grid-cols-2 sm:items-end">
+                  <div className="pb-1 text-xs font-semibold text-slate-700 sm:col-span-2">{label}</div>
                   <SelectField
                     label="模式"
                     value={isCustom ? "custom" : ""}
@@ -296,7 +296,7 @@ function SelectField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
-        className="h-8 min-w-0 rounded-md border border-slate-200 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+        className="h-8 min-w-0 rounded-md border border-slate-200 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-400"
       >
         {options.map((option) => (
           <option key={`${label}-${option.value || "default"}`} value={option.value}>
