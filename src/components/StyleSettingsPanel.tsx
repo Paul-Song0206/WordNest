@@ -122,7 +122,7 @@ export default function StyleSettingsPanel({
   };
 
   return (
-    <section className="rounded-md border border-slate-200 bg-slate-50/70 p-3">
+    <section className="rounded-lg border border-slate-200 bg-white p-3.5 shadow-sm shadow-slate-200/70 sm:p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-slate-900">样式覆盖</h2>
@@ -133,13 +133,13 @@ export default function StyleSettingsPanel({
         <button
           type="button"
           onClick={onReset}
-          className="h-8 shrink-0 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 transition hover:border-indigo-300 hover:text-indigo-700"
+          className="h-8 shrink-0 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-50"
         >
           恢复模板默认
         </button>
       </div>
 
-      <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
+      <div className="mt-3 grid gap-3 rounded-md border border-slate-200 bg-slate-50/70 p-3 sm:grid-cols-2">
         <SelectField
           label="中文字体"
           value={overrides.chineseFont ?? ""}
@@ -187,7 +187,7 @@ export default function StyleSettingsPanel({
         字体显示取决于本机和 Word 是否安装对应字体；未安装时会自动使用替代字体。
       </p>
 
-      <div className="mt-3 border-t border-slate-200 pt-3">
+      <div className="mt-4 border-t border-slate-200 pt-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">模板细则</h3>
@@ -198,21 +198,24 @@ export default function StyleSettingsPanel({
           <button
             type="button"
             onClick={resetRoleOverrides}
-            className="h-8 shrink-0 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 transition hover:border-indigo-300 hover:text-indigo-700"
+            className="h-8 shrink-0 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-50"
           >
             恢复模板默认
           </button>
         </div>
 
-        <div className="mt-2.5 grid gap-2">
+        <div className="mt-3 grid gap-2.5">
           {roleOptions.map(({ role, label }) => {
             const roleOverride = overrides.roleOverrides?.[role];
             const isCustom = roleOverride?.mode === "custom";
 
             return (
-              <div key={role} className="rounded-md border border-slate-200 bg-white p-2">
-                <div className="grid gap-2 sm:grid-cols-2 sm:items-end">
-                  <div className="pb-1 text-xs font-semibold text-slate-700 sm:col-span-2">{label}</div>
+              <div
+                key={role}
+                className="rounded-md border border-slate-200 bg-white p-3 shadow-sm shadow-slate-100/80"
+              >
+                <div className="grid gap-2.5 sm:grid-cols-2 sm:items-end">
+                  <div className="text-xs font-semibold text-slate-700 sm:col-span-2">{label}</div>
                   <SelectField
                     label="模式"
                     value={isCustom ? "custom" : ""}
@@ -296,7 +299,7 @@ function SelectField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
-        className="h-8 min-w-0 rounded-md border border-slate-200 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-400"
+        className="h-9 min-w-0 rounded-md border border-slate-200 bg-white px-2.5 text-sm text-slate-900 outline-none transition hover:border-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-100 disabled:text-slate-400"
       >
         {options.map((option) => (
           <option key={`${label}-${option.value || "default"}`} value={option.value}>

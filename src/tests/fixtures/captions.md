@@ -1,0 +1,10 @@
+图表题注示例
+
+图1 研究流程图
+该图展示研究设计的基本流程。
+
+表1 样本分布
+该表展示不同年级学生的样本数量。
+
+Figure 1 Workflow of the study
+The figure shows the main steps of the study.

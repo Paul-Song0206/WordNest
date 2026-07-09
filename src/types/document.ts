@@ -1,16 +1,46 @@
+export type CaptionKind = "figure" | "table";
+
+export type DocumentBlockRole =
+  | "abstractTitle"
+  | "abstractBody"
+  | "keywords"
+  | "caption"
+  | "referenceHeading"
+  | "referenceItem";
+
 export type HeadingBlock = {
   type: "heading";
   level: 1 | 2 | 3 | 4;
   text: string;
   html: string;
-  role?: "title" | "heading1" | "heading2" | "heading3" | "official-h1" | "official-h2" | "official-h3";
+  role?:
+    | "title"
+    | "heading1"
+    | "heading2"
+    | "heading3"
+    | "official-h1"
+    | "official-h2"
+    | "official-h3"
+    | "abstractTitle"
+    | "referenceHeading";
 };
 
 export type ParagraphBlock = {
   type: "paragraph";
   text: string;
   html: string;
-  role?: "meta" | "salutation" | "numbered-paragraph" | "keyword";
+  role?:
+    | "meta"
+    | "salutation"
+    | "numbered-paragraph"
+    | "keyword"
+    | "abstract"
+    | "reference"
+    | "abstractTitle"
+    | "abstractBody"
+    | "keywords"
+    | "caption"
+    | "referenceItem";
 };
 
 export type BlockquoteBlock = {
@@ -45,9 +75,55 @@ export type DocumentBlock =
   | ListBlock
   | TableBlock;
 
+export type StableBlock =
+  | { type: "title"; text: string; confidence: number; ruleId: string }
+  | {
+      type: "heading";
+      level: 1 | 2 | 3 | 4;
+      text: string;
+      confidence: number;
+      ruleId: string;
+      role?: Extract<DocumentBlockRole, "abstractTitle" | "referenceHeading">;
+    }
+  | {
+      type: "paragraph";
+      text: string;
+      ruleId?: string;
+      role?: Extract<DocumentBlockRole, "abstractTitle" | "caption">;
+      metadata?: { captionKind?: CaptionKind };
+    }
+  | { type: "list"; ordered: boolean; items: string[]; level: number; ruleId?: string }
+  | { type: "table"; rows: string[][]; ruleId?: string }
+  | { type: "blockquote"; text: string; ruleId?: string }
+  | { type: "code"; text: string; ruleId?: string }
+  | { type: "signature"; lines: string[]; confidence: number; ruleId: string }
+  | { type: "keywords"; text: string; confidence: number; ruleId: string; role?: Extract<DocumentBlockRole, "keywords"> }
+  | {
+      type: "abstract";
+      text: string;
+      confidence: number;
+      ruleId: string;
+      role?: Extract<DocumentBlockRole, "abstractBody">;
+    }
+  | { type: "references"; items: string[]; ruleId?: string; role?: Extract<DocumentBlockRole, "referenceItem"> };
+
+export type LineClassification = {
+  lineNumber: number;
+  rawText: string;
+  normalizedText: string;
+  classification: string;
+  ruleId: string;
+  confidence: number;
+  output: string;
+  reasons: string[];
+  role?: DocumentBlockRole;
+};
+
 export type DocumentModel = {
   blocks: DocumentBlock[];
+  stableBlocks: StableBlock[];
   cleanedMarkdown: string;
+  debugRows: LineClassification[];
   classification?: Array<{
     kind: string;
     text: string;
@@ -55,6 +131,7 @@ export type DocumentModel = {
 };
 
 export type NumericListHandling = "native" | "plain";
+export type WordCopyMode = "conservative" | "styled";
 export type StyleRole = "title" | "heading1" | "heading2" | "heading3" | "body" | "meta";
 
 export type RoleStyleOverride = {

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --app-bg: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 48%, #eef4ff 100%);
+  --app-bg: linear-gradient(180deg, #fbfdff 0%, #f6f8fb 48%, #eef4ff 100%);
 }
 
 body {
@@ -14,7 +14,7 @@ body {
     "Noto Sans SC",
     sans-serif;
   color: #0f172a;
-  background: #f8fafc;
+  background: #f6f8fb;
 }
 
 button,

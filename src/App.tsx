@@ -3,6 +3,7 @@ import ActionToolbar from "./components/ActionToolbar";
 import EditorPanel from "./components/EditorPanel";
 import PreviewPanel from "./components/PreviewPanel";
 import PrivacyNote from "./components/PrivacyNote";
+import RuleDebugPanel from "./components/RuleDebugPanel";
 import StyleSettingsPanel from "./components/StyleSettingsPanel";
 import TemplateSelector from "./components/TemplateSelector";
 import { cleanText } from "./lib/cleanText";
@@ -11,7 +12,7 @@ import { downloadHtml, downloadMarkdown } from "./lib/exportFiles";
 import { parseMarkdown } from "./lib/parseMarkdown";
 import { mergeStyles } from "./lib/styleSettings";
 import { builtInTemplates } from "./lib/templates";
-import type { RoleStyleOverride, StyleRole, UserStyleOverrides } from "./types/document";
+import type { RoleStyleOverride, StyleRole, UserStyleOverrides, WordCopyMode } from "./types/document";
 
 const templateStorageKey = "word-editor-template-id";
 const overridesStorageKey = "word-editor-style-overrides";
@@ -46,6 +47,7 @@ export default function App() {
   const [styleOverridesByTemplate, setStyleOverridesByTemplate] = useState(loadStoredOverrides);
   const [status, setStatus] = useState<string>("");
   const [isStyleSettingsOpen, setIsStyleSettingsOpen] = useState(false);
+  const [copyMode, setCopyMode] = useState<WordCopyMode>("styled");
 
   const selectedTemplate = useMemo(
     () => builtInTemplates.find((template) => template.id === templateId) ?? builtInTemplates[0],
@@ -114,7 +116,7 @@ export default function App() {
       console.groupEnd();
     }
     const previewHtml = renderPreviewHtml(documentModel, effectiveTemplate);
-    const wordHtml = renderWordHtml(documentModel, effectiveTemplate);
+    const wordHtml = renderWordHtml(documentModel, effectiveTemplate, copyMode);
 
     return {
       cleanedText,
@@ -122,7 +124,7 @@ export default function App() {
       previewHtml,
       wordHtml,
     };
-  }, [rawInput, selectedTemplate.id, effectiveTemplate]);
+  }, [rawInput, selectedTemplate.id, effectiveTemplate, copyMode]);
 
   const hasInput = rawInput.trim().length > 0;
   const characterCount = Array.from(rawInput.replace(/\s/g, "")).length;
@@ -165,17 +167,24 @@ export default function App() {
 
   return (
     <main className="min-h-screen bg-[var(--app-bg)] text-slate-900">
-      <div className="mx-auto flex min-h-screen max-w-[88rem] flex-col gap-3 px-3 py-3 md:px-5 md:py-4">
-        <header className="flex flex-col gap-2 border-b border-slate-200 pb-3 md:flex-row md:items-center md:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight text-slate-950">Word 排版助手</h1>
-            <p className="mt-1 text-sm text-slate-600">粘贴文本，整理格式，一键复制到 Word。</p>
+      <div className="mx-auto flex min-h-screen max-w-[92rem] flex-col gap-3.5 px-3.5 py-4 md:px-6 md:py-5">
+        <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-lg font-semibold text-white shadow-sm shadow-indigo-200">
+              W
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-[1.35rem] font-semibold leading-tight tracking-tight text-slate-950">
+                Word 排版助手
+              </h1>
+              <p className="mt-1 text-sm leading-5 text-slate-500">粘贴文本，整理格式，一键复制到 Word。</p>
+            </div>
           </div>
           <PrivacyNote />
         </header>
 
-        <section className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm md:px-4">
-          <div className="grid gap-2.5 xl:grid-cols-[minmax(13rem,18rem)_minmax(0,1fr)] xl:items-center">
+        <section className="rounded-lg border border-slate-200/80 bg-white/95 px-3.5 py-3 shadow-sm shadow-slate-200/50 md:px-5">
+          <div className="grid gap-3 xl:grid-cols-[minmax(15rem,21rem)_minmax(0,1fr)] xl:items-center">
             <TemplateSelector
               templates={builtInTemplates}
               selectedTemplateId={templateId}
@@ -183,6 +192,8 @@ export default function App() {
             />
             <ActionToolbar
               canUseOutput={hasInput}
+              copyMode={copyMode}
+              onCopyModeChange={setCopyMode}
               onCopyForWord={handleCopy}
               onDownloadMarkdown={handleDownloadMarkdown}
               onDownloadHtml={handleDownloadHtml}
@@ -190,18 +201,19 @@ export default function App() {
             />
           </div>
 
-          <div className="mt-2.5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2.5 text-xs text-slate-500">
-            <span className="rounded-md bg-slate-50 px-2 py-1">
-              当前模板：<span className="font-medium text-slate-700">{selectedTemplate.name}</span>
-            </span>
-            <span className="rounded-md bg-slate-50 px-2 py-1">仅整理格式，不改写内容</span>
-          </div>
-
-          <div className="mt-2.5 flex justify-end border-t border-slate-100 pt-2.5">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-md bg-slate-50 px-2.5 py-1 ring-1 ring-slate-200/70">
+                当前模板：<span className="font-medium text-slate-700">{selectedTemplate.name}</span>
+              </span>
+              <span className="rounded-md bg-indigo-50 px-2.5 py-1 text-indigo-700 ring-1 ring-indigo-100">
+                仅整理格式，不改写内容
+              </span>
+            </div>
             <button
               type="button"
               onClick={() => setIsStyleSettingsOpen(true)}
-              className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-50"
+              className="h-8 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-50"
             >
               高级样式设置
             </button>
@@ -213,26 +225,29 @@ export default function App() {
             <button
               type="button"
               aria-label="关闭高级样式设置"
-              className="absolute inset-0 bg-slate-900/15"
+              className="absolute inset-0 bg-slate-950/20 backdrop-blur-[1px]"
               onClick={() => setIsStyleSettingsOpen(false)}
             />
             <aside
               aria-label="高级样式设置"
               role="dialog"
               aria-modal="true"
-              className="absolute inset-y-0 left-0 flex w-full flex-col border-r border-slate-200 bg-white shadow-2xl sm:max-w-xl xl:max-w-2xl"
+              className="absolute inset-y-0 left-0 flex w-full flex-col border-r border-slate-200 bg-white shadow-2xl sm:max-w-[38rem] xl:max-w-[44rem]"
             >
-              <div className="flex min-h-14 items-center justify-between gap-3 border-b border-slate-200 px-4">
-                <h2 className="text-base font-semibold text-slate-950">高级样式设置</h2>
+              <div className="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/70 px-4 sm:px-5">
+                <div>
+                  <h2 className="text-base font-semibold text-slate-950">高级样式设置</h2>
+                  <p className="mt-0.5 text-xs text-slate-500">调整当前模板的 Word 粘贴样式。</p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setIsStyleSettingsOpen(false)}
-                  className="h-8 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition hover:border-indigo-300 hover:text-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-50"
+                  className="h-8 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition hover:border-indigo-300 hover:bg-white hover:text-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-50"
                 >
                   关闭
                 </button>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+              <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/60 p-3 sm:p-5">
                 <StyleSettingsPanel
                   overrides={selectedOverrides}
                   onChange={handleStyleOverridesChange}
@@ -243,7 +258,7 @@ export default function App() {
           </div>
         ) : null}
 
-        <section className="grid flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <section className="grid flex-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <EditorPanel value={rawInput} characterCount={characterCount} onChange={setRawInput} />
           <PreviewPanel
             html={processed.previewHtml}
@@ -252,6 +267,12 @@ export default function App() {
             hasContent={processed.documentModel.blocks.length > 0}
           />
         </section>
+
+        <RuleDebugPanel
+          rows={processed.documentModel.debugRows}
+          blocks={processed.documentModel.stableBlocks}
+          hasContent={processed.documentModel.blocks.length > 0}
+        />
       </div>
     </main>
   );

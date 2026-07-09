@@ -1,4 +1,18 @@
 import MarkdownIt from "markdown-it";
+import {
+  buildStableBlocks,
+  classifyLines,
+  headingThreshold,
+  scoreHeadingCandidate,
+} from "./documentPipeline";
+import {
+  isAbstractHeading,
+  isAcademicAbstractInline,
+  isAcademicKeywordLine,
+  isCaptionLine,
+  isReferenceHeading,
+  isReferenceItem,
+} from "./chineseStructureRules";
 import type {
   DocumentBlock,
   DocumentModel,
@@ -21,8 +35,17 @@ type HeadingDetectionContext = {
   nextLine: string | null;
 };
 
-type ParseMarkdownOptions = {
+export type ParseMarkdownOptions = {
   profileId?: string;
+};
+
+export type ParseToBlocksOptions = ParseMarkdownOptions;
+
+export type ParseToBlocksResult = DocumentModel & {
+  metadata?: {
+    profileId?: string;
+    parserVersion?: "1.2";
+  };
 };
 
 type ClassifiedLine = {
@@ -143,18 +166,8 @@ function isAcademicProfile(profileId: string | undefined): boolean {
   return profileId === "thesis" || profileId === "ruc-undergraduate-thesis-2022";
 }
 
-function isAcademicKeywordLine(line: string): boolean {
-  return /^(?:\u5173\s*\u952e\s*\u8bcd|keywords?|key\s+words?)\s*[:\uff1a]\s*.*$/i.test(
-    line.trim(),
-  );
-}
-
-function isAcademicAbstractHeading(line: string): boolean {
-  return /^(?:(?:\u4e2d\u6587|\u82f1\u6587)?\u6458\s*\u8981|abstract)$/i.test(line.trim());
-}
-
 function isAcademicFrontMatterHeading(line: string): boolean {
-  return isAcademicAbstractHeading(line) || /^(?:\u76ee\s*\u5f55|contents?)$/i.test(line.trim());
+  return isAbstractHeading(line) || /^(?:\u76ee\s*\u5f55|contents?)$/i.test(line.trim());
 }
 
 function isAcademicSentenceEnd(line: string): boolean {
@@ -238,6 +251,7 @@ function shouldPromoteAcademicHeading(
   if (
     !trimmed ||
     isAcademicKeywordLine(trimmed) ||
+    isCaptionLine(trimmed) ||
     isMarkdownHeading(trimmed) ||
     isQuote(trimmed) ||
     isBulletList(trimmed) ||
@@ -247,19 +261,14 @@ function shouldPromoteAcademicHeading(
     return null;
   }
 
-  const detectedLevel = getAcademicNumberedHeadingLevel(trimmed, nextLine) ?? getAcademicUnnumberedHeadingLevel(trimmed);
-  if (detectedLevel) {
-    return detectedLevel;
-  }
+  const scored = scoreHeadingCandidate(trimmed, {
+    lineIndex,
+    previousLine: null,
+    nextLine,
+    profileKind: "academic",
+  });
 
-  const isTopTitle =
-    lineIndex === 0 &&
-    trimmed.length >= 6 &&
-    trimmed.length <= 48 &&
-    (nextLine?.trim().length ?? 0) === 0 &&
-    !/[\u3002\uff0c\uff01\uff1f\uff1b\uff1a,!?;:]$/.test(trimmed);
-
-  return isTopTitle ? 1 : null;
+  return scored.score >= headingThreshold("academic") ? scored.level : null;
 }
 
 function isAcademicDocumentTitleCandidate(
@@ -313,48 +322,6 @@ function isAcademicStructuralLine(line: string | null): boolean {
   );
 }
 
-function isStrongHeadingPattern(line: string): { level: 1 | 2 | 3 | 4 } | null {
-  const trimmed = line.trim();
-
-  if (/^第[0-9一二三四五六七八九十百千万]+(章|部分|节)[\s：:、.]*/.test(trimmed)) {
-    return { level: 1 };
-  }
-
-  if (/^[0-9]+[\s　]+/.test(trimmed)) {
-    return { level: 1 };
-  }
-
-  if (/^[一二三四五六七八九十百千万]+[、.．]\s*/.test(trimmed)) {
-    return { level: 2 };
-  }
-
-  if (/^[（(][一二三四五六七八九十百千万]+[)）]\s*/.test(trimmed)) {
-    return { level: 3 };
-  }
-
-  if (/^\d+\.\d+\.\d+\.\d+\s+/.test(trimmed)) {
-    return { level: 4 };
-  }
-
-  if (/^\d+\.\d+\.\d+\s+/.test(trimmed)) {
-    return { level: 3 };
-  }
-
-  if (/^\d+\.\d+\s+/.test(trimmed)) {
-    return { level: 2 };
-  }
-
-  if (/^\d+[、.．]\s*/.test(trimmed)) {
-    return { level: 2 };
-  }
-
-  if (/^(摘要|Abstract|关键词|Key words|引言|绪论|结论|参考文献|致谢|附录)$/.test(trimmed)) {
-    return { level: 1 };
-  }
-
-  return null;
-}
-
 function shouldPromoteHeading(
   line: string,
   context: HeadingDetectionContext,
@@ -376,8 +343,12 @@ function shouldPromoteHeading(
     return null;
   }
 
-  const match = isStrongHeadingPattern(trimmed);
-  if (!match) {
+  const scored = scoreHeadingCandidate(trimmed, {
+    ...context,
+    profileKind: "general",
+  });
+
+  if (scored.score < headingThreshold("general")) {
     const isTopTitle =
       context.lineIndex === 0 &&
       trimmed.length <= 24 &&
@@ -386,6 +357,10 @@ function shouldPromoteHeading(
       (context.nextLine?.trim().length ?? 0) === 0;
 
     return isTopTitle ? 1 : null;
+  }
+
+  if (!scored.level) {
+    return null;
   }
 
   const previousLine = context.previousLine?.trim() ?? "";
@@ -401,7 +376,7 @@ function shouldPromoteHeading(
     looksLikeFullSentence(previousLine) ||
     isBlank(previousLine);
 
-  return separated ? match.level : null;
+  return separated ? scored.level : null;
 }
 
 function getStandaloneOrderedHeadingLevel(
@@ -510,6 +485,12 @@ function preprocessForMarkdown(input: string): string {
       return;
     }
 
+    if (isCaptionLine(trimmed)) {
+      flushParagraphBuffer();
+      output.push(trimmed, "");
+      return;
+    }
+
     const promotedHeadingLevel = shouldPromoteHeading(line, {
       lineIndex: index,
       previousLine,
@@ -548,6 +529,7 @@ function preprocessAcademicForMarkdown(input: string): string {
   let insideCodeFence = false;
   let hasSeenAcademicContent = false;
   let hasAcademicTitle = false;
+  let insideReferenceSection = false;
 
   const flushParagraphBuffer = () => {
     if (paragraphBuffer.length > 0) {
@@ -617,10 +599,33 @@ function preprocessAcademicForMarkdown(input: string): string {
       return;
     }
 
+    if (isReferenceHeading(trimmed)) {
+      flushParagraphBuffer();
+      output.push(`${"#".repeat(getAcademicMarkdownHeadingLevel(1))} ${trimmed}`);
+      insideReferenceSection = true;
+      markAcademicContent();
+      return;
+    }
+
+    if (isReferenceItem(trimmed, { insideReferenceSection })) {
+      flushParagraphBuffer();
+      pushSeparated(trimmed);
+      markAcademicContent();
+      return;
+    }
+
+    if (isCaptionLine(trimmed)) {
+      flushParagraphBuffer();
+      pushSeparated(trimmed);
+      markAcademicContent();
+      return;
+    }
+
     const headingLevel = shouldPromoteAcademicHeading(trimmed, nextLine, index);
     if (headingLevel) {
       flushParagraphBuffer();
       output.push(`${"#".repeat(getAcademicMarkdownHeadingLevel(headingLevel))} ${trimmed}`);
+      insideReferenceSection = false;
       markAcademicContent();
       return;
     }
@@ -745,6 +750,12 @@ function preprocessOfficialForMarkdown(input: string): {
       return;
     }
 
+    if (isCaptionLine(trimmed)) {
+      flushParagraphBuffer();
+      pushSeparated(trimmed, "paragraph");
+      return;
+    }
+
     paragraphBuffer.push(line);
   });
 
@@ -790,7 +801,59 @@ function getOfficialParagraphRole(text: string): ParagraphBlock["role"] {
 }
 
 function getAcademicParagraphRole(text: string): ParagraphBlock["role"] {
-  return isAcademicKeywordLine(text) ? "keyword" : undefined;
+  if (isAcademicKeywordLine(text)) {
+    return "keywords";
+  }
+
+  if (isAcademicAbstractInline(text)) {
+    return "abstractBody";
+  }
+
+  if (isAbstractHeading(text)) {
+    return "abstractTitle";
+  }
+
+  if (isCaptionLine(text)) {
+    return "caption";
+  }
+
+  if (isReferenceItem(text)) {
+    return "referenceItem";
+  }
+
+  return undefined;
+}
+
+function getGeneralParagraphRole(text: string): ParagraphBlock["role"] {
+  if (isAcademicKeywordLine(text)) {
+    return "keywords";
+  }
+
+  if (isAcademicAbstractInline(text)) {
+    return "abstractBody";
+  }
+
+  if (isAbstractHeading(text)) {
+    return "abstractTitle";
+  }
+
+  if (isCaptionLine(text)) {
+    return "caption";
+  }
+
+  return undefined;
+}
+
+function getParagraphRole(
+  text: string,
+  officialProfile: boolean,
+  academicProfile: boolean,
+): ParagraphBlock["role"] {
+  if (officialProfile) {
+    return getOfficialParagraphRole(text) ?? getGeneralParagraphRole(text);
+  }
+
+  return academicProfile ? getAcademicParagraphRole(text) : getGeneralParagraphRole(text);
 }
 
 function normalizeEscapedMarkers(text: string): string {
@@ -870,7 +933,7 @@ function createParagraphBlock(
     type: "paragraph",
     text,
     html: renderInline(inlineToken),
-    role: officialProfile ? getOfficialParagraphRole(text) : academicProfile ? getAcademicParagraphRole(text) : undefined,
+    role: getParagraphRole(text, officialProfile, academicProfile),
   };
 }
 
@@ -950,18 +1013,27 @@ function createHeadingBlock(
 ): HeadingBlock {
   const level = Number.parseInt(openToken.tag.replace("h", ""), 10) as 1 | 2 | 3 | 4;
   const normalizedLevel = level <= 4 ? level : 4;
+  const semanticHeadingRole =
+    academicProfile && isReferenceHeading(inlineToken.content)
+      ? "referenceHeading"
+      : academicProfile && isAbstractHeading(inlineToken.content)
+        ? "abstractTitle"
+        : undefined;
   return {
     type: "heading",
     level: normalizedLevel,
     text: inlineToken.content,
     html: renderInline(inlineToken),
-    role: getHeadingRole(normalizedLevel, officialProfile, academicProfile, hasDocumentTitle, isFirstDocumentBlock),
+    role:
+      semanticHeadingRole ??
+      getHeadingRole(normalizedLevel, officialProfile, academicProfile, hasDocumentTitle, isFirstDocumentBlock),
   };
 }
 
-export function parseMarkdown(input: string, options: ParseMarkdownOptions = {}): DocumentModel {
+function parseDocumentModel(input: string, options: ParseMarkdownOptions = {}): DocumentModel {
   const officialProfile = options.profileId === "official-document";
   const academicProfile = isAcademicProfile(options.profileId);
+  const debugRows = classifyLines(input, options.profileId);
   const officialPrepared = officialProfile ? preprocessOfficialForMarkdown(input) : null;
   const preparedMarkdown =
     officialPrepared?.markdownText ?? (academicProfile ? preprocessAcademicForMarkdown(input) : preprocessForMarkdown(input));
@@ -1034,7 +1106,9 @@ export function parseMarkdown(input: string, options: ParseMarkdownOptions = {})
 
   const documentModel = {
     blocks,
+    stableBlocks: buildStableBlocks(blocks, debugRows),
     cleanedMarkdown: preparedMarkdown,
+    debugRows,
     classification: officialPrepared?.classification,
   };
 
@@ -1043,4 +1117,28 @@ export function parseMarkdown(input: string, options: ParseMarkdownOptions = {})
   }
 
   return documentModel;
+}
+
+export function parseToBlocks(input: string, options: ParseToBlocksOptions = {}): ParseToBlocksResult {
+  const documentModel = parseDocumentModel(input, options);
+
+  return {
+    ...documentModel,
+    metadata: {
+      profileId: options.profileId,
+      parserVersion: "1.2",
+    },
+  };
+}
+
+export function parseMarkdown(input: string, options: ParseMarkdownOptions = {}): DocumentModel {
+  const parserResult = parseToBlocks(input, options);
+
+  return {
+    blocks: parserResult.blocks,
+    stableBlocks: parserResult.stableBlocks,
+    cleanedMarkdown: parserResult.cleanedMarkdown,
+    debugRows: parserResult.debugRows,
+    classification: parserResult.classification,
+  };
 }

@@ -3,7 +3,9 @@ import type {
   DocumentModel,
   DocumentTemplate,
   EffectiveRoleStyle,
+  StableBlock,
   StyleRole,
+  WordCopyMode,
 } from "../types/document";
 
 type CopyResult = {
@@ -12,6 +14,7 @@ type CopyResult = {
 };
 
 type HeadingStyleRole = Exclude<StyleRole, "body" | "meta">;
+type RenderMode = "preview" | WordCopyMode;
 
 function pageSetupStyle(template: DocumentTemplate): string {
   if (!template.pageSetup) {
@@ -156,7 +159,63 @@ function renderTable(
   return `<table style="${tableStyle}">${headerHtml}${bodyHtml}</table>`;
 }
 
-function renderBlock(block: DocumentBlock, template: DocumentTemplate, mode: "preview" | "word"): string {
+function renderConservativeTable(block: Extract<DocumentBlock, { type: "table" }>): string {
+  const cellStyle = "padding:4pt 6pt; border:1px solid #666; font-size:12pt; font-family:SimSun, 宋体, serif; text-indent:0";
+  const headerHtml = block.headers.length
+    ? `<thead><tr>${block.headers.map((header) => `<th style="${cellStyle}; font-weight:700">${header}</th>`).join("")}</tr></thead>`
+    : "";
+  const bodyHtml = `<tbody>${block.rows
+    .map((row) => `<tr>${row.map((cell) => `<td style="${cellStyle}">${cell}</td>`).join("")}</tr>`)
+    .join("")}</tbody>`;
+
+  return `<table style="width:100%; border-collapse:collapse; margin:0 0 8pt">${headerHtml}${bodyHtml}</table>`;
+}
+
+function renderConservativeBlock(block: DocumentBlock): string {
+  const paragraphStyle =
+    "margin:0 0 8pt; line-height:1.5; text-indent:2em; font-size:12pt; font-family:SimSun, 宋体, serif";
+  const noIndentParagraphStyle = blockStyle(paragraphStyle, "text-indent:0");
+  const headingStyle = (level: 1 | 2 | 3 | 4) =>
+    `margin:${level === 1 ? "0 0 12pt" : "10pt 0 6pt"}; line-height:1.4; font-family:SimHei, 黑体, sans-serif; font-weight:700; font-size:${
+      level === 1 ? "16pt" : level === 2 ? "14pt" : level === 3 ? "12pt" : "10.5pt"
+    }; text-indent:0`;
+
+  switch (block.type) {
+    case "heading":
+      return `<h${block.level} style="${headingStyle(block.level)}">${block.html}</h${block.level}>`;
+    case "paragraph": {
+      const style =
+        block.role === "meta" ||
+        block.role === "keyword" ||
+        block.role === "keywords" ||
+        block.role === "abstract" ||
+        block.role === "abstractBody" ||
+        block.role === "referenceItem" ||
+        block.role === "salutation" ||
+        block.role === "numbered-paragraph"
+          ? noIndentParagraphStyle
+          : paragraphStyle;
+      return `<p style="${style}">${block.html}</p>`;
+    }
+    case "blockquote":
+      return `<blockquote style="margin:0 0 8pt; padding:4pt 8pt; border-left:2pt solid #999; font-size:12pt; line-height:1.5; font-family:SimSun, 宋体, serif">${block.html}</blockquote>`;
+    case "code":
+      return `<pre style="margin:0 0 8pt; font-family:Consolas, monospace; font-size:10.5pt; line-height:1.4; white-space:pre-wrap"><code>${escapeHtml(block.text)}</code></pre>`;
+    case "list": {
+      const tag = block.ordered ? "ol" : "ul";
+      const items = block.items.map((item) => `<li style="margin:0 0 4pt">${item}</li>`).join("");
+      return `<${tag} style="margin:0 0 8pt; padding-left:1.5em; line-height:1.5; font-size:12pt; font-family:SimSun, 宋体, serif">${items}</${tag}>`;
+    }
+    case "table":
+      return renderConservativeTable(block);
+  }
+}
+
+function renderBlock(block: DocumentBlock, template: DocumentTemplate, mode: RenderMode): string {
+  if (mode === "conservative") {
+    return renderConservativeBlock(block);
+  }
+
   const styles = template.styles;
   const getLatinFontFamily = (role?: StyleRole) =>
     (role ? styles.roleStyles?.[role]?.latinFontFamily : undefined) ?? styles.document.latinFontFamily;
@@ -193,8 +252,16 @@ function renderBlock(block: DocumentBlock, template: DocumentTemplate, mode: "pr
         return `<p${blockClass(block.role)} style="${metaStyle}">${inlineHtml(block.html, "meta")}</p>`;
       }
 
-      if (block.role === "keyword") {
+      if (block.role === "keyword" || block.role === "keywords") {
         return `<p${blockClass(block.role)} style="${keywordStyle}">${inlineHtml(block.html, "body")}</p>`;
+      }
+
+      if (block.role === "abstract" || block.role === "abstractBody" || block.role === "reference" || block.role === "referenceItem") {
+        return `<p${blockClass(block.role)} style="${keywordStyle}">${inlineHtml(block.html, "body")}</p>`;
+      }
+
+      if (block.role === "abstractTitle" || block.role === "caption") {
+        return `<p${blockClass(block.role)} style="${paragraphStyle}">${inlineHtml(block.html, "body")}</p>`;
       }
 
       if (block.role === "salutation") {
@@ -260,6 +327,10 @@ function getHeadingStyleRole(block: Extract<DocumentBlock, { type: "heading" }>)
     return "heading3";
   }
 
+  if (block.role === "abstractTitle" || block.role === "referenceHeading") {
+    return "heading1";
+  }
+
   if (block.level === 1) {
     return "heading1";
   }
@@ -284,25 +355,150 @@ function getHeadingStyleLevel(role: HeadingStyleRole): 1 | 2 | 3 | 4 {
   }
 }
 
+function stableBlockToDocumentBlocks(block: StableBlock): DocumentBlock[] {
+  switch (block.type) {
+    case "title":
+      return [
+        {
+          type: "heading",
+          level: 1,
+          text: block.text,
+          html: escapeHtml(block.text),
+          role: "title",
+        },
+      ];
+    case "heading":
+      return [
+        {
+          type: "heading",
+          level: block.level,
+          text: block.text,
+          html: escapeHtml(block.text),
+          role: block.role,
+        },
+      ];
+    case "paragraph":
+      return [
+        {
+          type: "paragraph",
+          text: block.text,
+          html: escapeHtml(block.text),
+          role: block.role,
+        },
+      ];
+    case "keywords":
+      return [
+        {
+          type: "paragraph",
+          text: block.text,
+          html: escapeHtml(block.text),
+          role: "keywords",
+        },
+      ];
+    case "abstract":
+      return [
+        {
+          type: "paragraph",
+          text: block.text,
+          html: escapeHtml(block.text),
+          role: "abstractBody",
+        },
+      ];
+    case "signature":
+      return block.lines.map((line) => ({
+        type: "paragraph",
+        text: line,
+        html: escapeHtml(line),
+        role: "meta",
+      }));
+    case "references":
+      return block.items.map((item) => ({
+        type: "paragraph",
+        text: item,
+        html: escapeHtml(item),
+        role: "referenceItem",
+      }));
+    case "list":
+      return [
+        {
+          type: "list",
+          ordered: block.ordered,
+          items: block.items.map(escapeHtml),
+        },
+      ];
+    case "table": {
+      const [headers = [], ...rows] = block.rows;
+      return [
+        {
+          type: "table",
+          headers: headers.map(escapeHtml),
+          rows: rows.map((row) => row.map(escapeHtml)),
+        },
+      ];
+    }
+    case "blockquote":
+      return [
+        {
+          type: "blockquote",
+          text: block.text,
+          html: escapeHtml(block.text),
+        },
+      ];
+    case "code":
+      return [
+        {
+          type: "code",
+          text: block.text,
+        },
+      ];
+  }
+}
+
+function getRenderableBlocks(documentModel: DocumentModel): DocumentBlock[] {
+  if (documentModel.stableBlocks.length === 0) {
+    return documentModel.blocks;
+  }
+
+  return documentModel.stableBlocks.flatMap(stableBlockToDocumentBlocks);
+}
+
 function renderDocument(
   documentModel: DocumentModel,
   template: DocumentTemplate,
-  mode: "preview" | "word",
+  mode: RenderMode,
 ): string {
-  const content = documentModel.blocks.map((block) => renderBlock(block, template, mode)).join("");
-  const wrapperStyle = `color:${template.styles.document.color}; background:${mode === "preview" ? template.styles.document.previewBackground : "transparent"}; padding:${mode === "preview" ? template.styles.document.previewPadding : "0"}; font-family:${template.styles.document.fontFamily}`;
-  return `${mode === "word" ? pageSetupStyle(template) : ""}${wrapWithStyle(content, wrapperStyle)}`;
+  const content = getRenderableBlocks(documentModel).map((block) => renderBlock(block, template, mode)).join("");
+  const wordWrapperStyle =
+    mode === "conservative"
+      ? "color:#111827; background:transparent; padding:0; font-family:SimSun, 宋体, serif"
+      : `color:${template.styles.document.color}; background:transparent; padding:0; font-family:${template.styles.document.fontFamily}`;
+  const wrapperStyle =
+    mode === "preview"
+      ? `color:${template.styles.document.color}; background:${template.styles.document.previewBackground}; padding:${template.styles.document.previewPadding}; font-family:${template.styles.document.fontFamily}`
+      : wordWrapperStyle;
+  return `${mode !== "preview" ? pageSetupStyle(template) : ""}${wrapWithStyle(content, wrapperStyle)}`;
 }
 
 export function renderPreviewHtml(documentModel: DocumentModel, template: DocumentTemplate): string {
   return renderDocument(documentModel, template, "preview");
 }
 
-export function renderWordHtml(documentModel: DocumentModel, template: DocumentTemplate): string {
-  return renderDocument(documentModel, template, "word");
+export function renderWordHtml(
+  documentModel: DocumentModel,
+  template: DocumentTemplate,
+  copyMode: WordCopyMode = "styled",
+): string {
+  return renderDocument(documentModel, template, copyMode);
 }
 
 export async function copyForWord(wordHtml: string, plainText: string): Promise<CopyResult> {
+  if (copyBySelection(wordHtml, plainText)) {
+    return {
+      ok: true,
+      message: "已复制适合 Word 粘贴的富文本。",
+    };
+  }
+
   try {
     if (navigator.clipboard && "ClipboardItem" in window) {
       const item = new ClipboardItem({
@@ -335,5 +531,48 @@ export async function copyForWord(wordHtml: string, plainText: string): Promise<
         message: "复制失败，请检查浏览器剪贴板权限。",
       };
     }
+  }
+}
+
+function copyBySelection(wordHtml: string, plainText: string): boolean {
+  if (!document.body || typeof document.execCommand !== "function") {
+    return false;
+  }
+
+  const container = document.createElement("div");
+  container.setAttribute("contenteditable", "true");
+  container.style.position = "fixed";
+  container.style.left = "-9999px";
+  container.style.top = "0";
+  container.style.width = "1px";
+  container.style.height = "1px";
+  container.style.overflow = "hidden";
+  container.innerHTML = wordHtml || escapeHtml(plainText).replace(/\n/g, "<br>");
+
+  document.body.appendChild(container);
+
+  const selection = window.getSelection();
+  if (!selection) {
+    container.remove();
+    return false;
+  }
+
+  const previousRanges = Array.from({ length: selection.rangeCount }, (_, index) =>
+    selection.getRangeAt(index).cloneRange(),
+  );
+
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(container);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    selection.removeAllRanges();
+    previousRanges.forEach((range) => selection.addRange(range));
+    container.remove();
   }
 }
